@@ -220,6 +220,44 @@ class Tree:
             player = -player  # 换人落子
         return winner, board
 
+    def find_max_UCT_path(self, tree):
+        """
+        搜索每个deep最大的UCT节点，返回下一步要expand的节点
+        """
+        max_path = []
+        while True:
+
+            max_point, next_tree = self.find_layer_max_uct(tree)
+            tree = next_tree
+            if max_point is None:
+                break
+            else:
+                max_path.append(max_point)
+        return max_path
+
+    def find_layer_max_uct(self, tree):
+        """
+        搜索每一层的最大UCT
+        """
+        max_uct_poin = None
+        max_uct = None
+        for k in tree:
+            if isinstance(tree[k], dict):
+                if tree[k].__contains__('UCT'):
+                    if max_uct_poin is None or max_uct is None:
+                        max_uct_poin = k
+                        max_uct = tree[k]['UCT']
+                    elif tree[k]['UCT'] > max_uct:
+                        max_uct = tree[k]['UCT']
+                        max_uct_poin = k
+        if max_uct_poin is None or max_uct == 0:  # 最后的叶子节点UCT都为0 从上一级开始expand
+            nest_tree = None
+            max_uct_poin = None
+        else:
+            nest_tree = tree[max_uct_poin]
+
+        return max_uct_poin, nest_tree
+
     def fully_expanded(self, para):
         """
         对从root开始指定深度的point进行随机抽样覆盖的搜索
@@ -235,7 +273,7 @@ class Tree:
         # path_list = list(itertools.permutations(availabel_points_list, para['deep']))  # 得到深度为deep 这行太占内存了
         # 产生随机的拓展path
         path_list = []
-        for i in range(para['random_pick_num']):
+        while len(path_list) < para['random_pick_num']:
             random_path = random.sample(availabel_points_list, para['deep'])
             if random_path not in path_list:
                 path_list.append(random_path)
@@ -283,9 +321,15 @@ class Tree:
             result = 'playerB'
             self.write_in_tree_recode(path, result)
 
-    def updata_UCT(self):
-        # TODO 更新tree中的UCT
-        pass
+    def UCT(self, winner, count, root_count, c):
+        uct = (winner / (count + 1)) + sqrt(c * log(root_count) / (count + 1))
+        return uct
+
+    def updata_UCT(self, tree, root_count, player, c):
+        for k in tree:
+            if isinstance(tree[k], dict):
+                tree[k]['UCT'] = self.UCT(tree[k][player], tree[k]['count'], root_count, c)
+                self.updata_UCT(tree[k], tree[k]['count'], player, c)
 
     def traverse(self, board, deep, random_pick_num=100):
         """
@@ -331,6 +375,7 @@ class Tree:
             self.backpropagation(recode['unvisited_path'],
                                  recode['visited_playerA_path'],
                                  recode['visited_playerB_path'])
+
         return best_point, best_uct
 
     def initial_board(self):
@@ -338,12 +383,18 @@ class Tree:
         pass
 
     def monte_carlo_tree_search(self, deep, random_pick_num):
-        # start_time = time.time()
+        start_time = time.time()
         # board = copy.deepcopy(self.initial_board)
         # while time.time() - start_time < 50:
-        best_point, best_uct = self.traverse(deep=deep,
-                                             random_pick_num=random_pick_num,
-                                             board=self.initial_board)  # 第一手棋手开始搜索
+        while time.time() - start_time < 60:
+            # best_point, best_uct = self.traverse(deep=deep,
+            #                                      random_pick_num=random_pick_num,
+            #                                      board=self.initial_board)  # 第一手棋手开始搜索
+            best_point, best_uct = self.traverse(deep=deep,
+                                                 random_pick_num=random_pick_num,
+                                                 board=self.initial_board)  # 第一手棋手开始搜索
+            self.updata_UCT(self.tree_recode, 1, player='playerA', c=2)
+            self.max_path = self.find_max_UCT_path(tree.tree_recode)
 
         # board = random.choice(self.unvisited_board[best_point])  # 选出一个没有完成的board来计算
 
@@ -358,7 +409,7 @@ class Tree:
 
 import time
 
-board = Board(5)
+board = Board(6)
 # for point in [(0,0),(1,1), (2,2),(3,3),(4,4)]:
 #     board.add_stone(point[0], point[1], 1)
 # result = board.check_for_win(1,5)
@@ -367,9 +418,65 @@ board = Board(5)
 # board.check_for_win(1, 3)
 # board.add_stone(1, 1, -1)
 
-tree = Tree(board, firstplayer=playerA, continus_number=3)
+tree = Tree(board, firstplayer=playerA, continus_number=4)
 a = time.time()
-best_point, best_uct = tree.monte_carlo_tree_search(deep=6, random_pick_num=100)
+best_point, best_uct = tree.monte_carlo_tree_search(deep=10, random_pick_num=2000)
 print(best_point, best_uct)
 b = time.time()
 print(b - a)
+#%%
+tree_recode = tree.tree_recode
+
+def UCT(winner, count, root_count, c):
+    uct = (winner/(count+1)) + sqrt(c*log(root_count)/(count+1))
+    return uct
+
+
+def updata_UCT(tree, root_count, player, c):
+    for k in tree:
+        if isinstance(tree[k], dict):
+            tree[k]['UCT'] = UCT(tree[k][player], tree[k]['count'], root_count,c)
+            updata_UCT(tree[k], tree[k]['count'], player, c)
+
+updata_UCT(tree_recode, 1, player='playerA', c=2)
+
+#%%
+# trees = {'a': {'UCT': 3, 'b': {'UCT': 8}}}
+
+def find_max_UCT_path(tree):
+    """
+    搜索每个deep最大的UCT节点，返回下一步要expand的节点
+    """
+    max_path = []
+
+    while True:
+
+        max_point, next_tree = find_layer_max_uct(tree)
+        tree = next_tree
+        if max_point is None:
+            break
+        else:
+            max_path.append(max_point)
+    return max_path
+
+
+def find_layer_max_uct(tree):
+    max_uct_poin = None
+    max_uct = None
+    for k in tree:
+        if isinstance(tree[k], dict):
+            if tree[k].__contains__('UCT'):
+                if max_uct_poin is None or max_uct is None:
+                    max_uct_poin = k
+                    max_uct = tree[k]['UCT']
+                elif tree[k]['UCT'] > max_uct:
+                    max_uct = tree[k]['UCT']
+                    max_uct_poin = k
+    if max_uct_poin is None:
+        nest_tree = None
+    else:
+        nest_tree = tree[max_uct_poin]
+
+    return max_uct_poin, nest_tree
+
+max_path = find_max_UCT_path(tree.tree_recode)

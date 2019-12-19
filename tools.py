@@ -362,40 +362,70 @@
 #             adjacents.remove(move)
 #     return adjacents
 
-def nested_dict_builder(data, k, v):
-    key_list = k
-    curr_data = data
-    for i in key_list[:-1]:
-        print(i, curr_data)
-        if curr_data.__contains__(i):
-            curr_data = curr_data[i]  # 深入一层
-
-        else:
-            curr_data[i] = {}
-            curr_data = curr_data[i]
-    curr_data[key_list[-1]] = v
-
-res = {(1,2): {(3,4): {'w':3, 'v':3}}}
-d1 = {
-    # ((1,2), (3,4)): {'w':3, 'v':7},
-      ((1,2), (3,4), (7,7)): {'w':3, 'v':7}}
-for k, v in d1.items():
-    nested_dict_builder(res, k, v)
-
-print(res)
-
-
-def read_result_from_tree(path):
-    pass
-    tree = {(1,2): {(3,4): {'w':0, 'v':0}}}
-    order = "tree"
-    for point in path:
-        order += "[{}]".format(point)
-    result = eval(order)
-    return result
-
-read_result_from_tree([(1,2),(3,4)])
+# def nested_dict_builder(data, k, v):
+#     key_list = k
+#     curr_data = data
+#     for i in key_list[:-1]:
+#         print(i, curr_data)
+#         if curr_data.__contains__(i):
+#             curr_data = curr_data[i]  # 深入一层
+#
+#         else:
+#             curr_data[i] = {}
+#             curr_data = curr_data[i]
+#     curr_data[key_list[-1]] = v
+#
+# res = {(1,2): {(3,4): {'w':3, 'v':3}}}
+# d1 = {
+#     # ((1,2), (3,4)): {'w':3, 'v':7},
+#       ((1,2), (3,4), (7,7)): {'w':3, 'v':7}}
+# for k, v in d1.items():
+#     nested_dict_builder(res, k, v)
+#
+# print(res)
+#
+#
+# def read_result_from_tree(path):
+#     pass
+#     tree = {(1,2): {(3,4): {'w':0, 'v':0}}}
+#     order = "tree"
+#     for point in path:
+#         order += "[{}]".format(point)
+#     result = eval(order)
+#     return result
+#
+# read_result_from_tree([(1,2),(3,4)])
 
 
 # 输出结果:
 # {'a': {'b': {'c': 1, 'e': 3, 'd': 2}}}
+
+#%%
+area = {
+    '世界': {
+        '中国': {
+            '广东': {
+                '佛山': {
+                    '南海': {
+                        '桂城': '我家'
+                    }
+                },
+                '广州': {
+                    '荔湾': None
+                }
+            },
+            '香港': {
+                '九龙': None
+            }
+        },
+        '美国': {}
+    }
+}
+
+def print_k(area, i=0):
+
+    for k in area:
+        print('----' * i, k, sep='')
+        if isinstance(area[k], dict):
+            print_k(area[k], i+1)
+print_k(area)
