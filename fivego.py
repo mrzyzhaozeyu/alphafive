@@ -133,17 +133,66 @@ class Tree:
         利用dict的链表特性多重赋值
         把path编码写入dict tree
         """
-        key_list = k
-        curr_data = self.tree_recode
-        for i in key_list[:-1]:
-            if curr_data.__contains__(i):
-                curr_data = curr_data[i]
+        # 未结束路径的写入传播
+        if v == 'unvisited':
 
-            else:
-                curr_data[i] = {}
-                curr_data = curr_data[i]
+            key_list = k
+            curr_data = self.tree_recode
+            for i in key_list[:-1]:
+                if curr_data.__contains__(i):
+                    curr_data[i]['count'] += 1  # 反向传播记录
+                    curr_data = curr_data[i]
+                    # curr_data['count'] += 1
+                else:
+                    curr_data[i] = {'count': 1, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'unvisited'}
+                    curr_data = curr_data[i]
 
-        curr_data[key_list[-1]] = v
+            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'unvisited'}
+
+        if v == 'playerA':
+
+            key_list = k
+            curr_data = self.tree_recode
+            for i in key_list[:-1]:
+                if curr_data.__contains__(i):
+                    curr_data[i]['count'] += 1
+                    curr_data[i]['playerA'] += 1
+                    curr_data = curr_data[i]
+
+                else:
+                    curr_data[i] = {'count': 1, 'playerA': 1, 'playerB': 0, 'UCT': 0, 'state': 'unvisited'}
+                    curr_data = curr_data[i]
+
+            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'playerA'}
+
+        if v == 'playerB':
+
+            key_list = k
+            curr_data = self.tree_recode
+            for i in key_list[:-1]:
+                if curr_data.__contains__(i):
+                    curr_data[i]['count'] += 1
+                    curr_data[i]['playerB'] += 1
+                    curr_data = curr_data[i]
+
+                else:
+                    curr_data[i] = {'count': 1, 'playerA': 0, 'playerB': 1, 'UCT': 0, 'state': 'unvisited'}
+                    curr_data = curr_data[i]
+
+            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'playerB'}
+
+
+        # key_list = k
+        # curr_data = self.tree_recode
+        # for i in key_list[:-1]:
+        #     if curr_data.__contains__(i):
+        #         curr_data = curr_data[i]
+        #
+        #     else:
+        #         curr_data[i] = {}
+        #         curr_data = curr_data[i]
+        #
+        # curr_data[key_list[-1]] = v
 
     def read_result_from_tree(self, path):
         """
@@ -202,10 +251,9 @@ class Tree:
             # 不要记录这些点的状态，内存太大
             if winner is None:
                 # self.write_in_tree_recode(path=path, result={'playerA': 0, 'playerB': 0})
-                unvisited_path.append(end_board)  # 记录那些没有到头的搜索路径
+                unvisited_path.append(end_board.move_recode)  # 记录那些没有到头的搜索路径
             elif winner == playerA:
                 # self.write_in_tree_recode(path=path, result={'winner': winner})
-                # TODO 反向传播
                 visited_playerA_path.append(end_board.move_recode)  # 记录那些已经到头的搜索路径playerA 获胜
             elif winner == playerB:
                 visited_playerB_path.append(end_board.move_recode)  # 记录那些已经到头的搜索路径playerB 获胜
@@ -224,9 +272,20 @@ class Tree:
         """
         根据每条path的结果，更新tree的dict数据，并计算UCT和UCB
         """
+        # TODO 反向传播
+        for path in unvisited_path:
+            result = 'unvisited'
+            self.write_in_tree_recode(path, result)
+        for path in visited_playerA_path:
+            result = 'playerA'
+            self.write_in_tree_recode(path, result)
+        for path in visited_playerB_path:
+            result = 'playerB'
+            self.write_in_tree_recode(path, result)
+
+    def updata_UCT(self):
+        # TODO 更新tree中的UCT
         pass
-
-
 
     def traverse(self, board, deep, random_pick_num=100):
         """
@@ -310,7 +369,7 @@ board = Board(5)
 
 tree = Tree(board, firstplayer=playerA, continus_number=3)
 a = time.time()
-best_point, best_uct = tree.monte_carlo_tree_search(deep=6, random_pick_num=1000)
+best_point, best_uct = tree.monte_carlo_tree_search(deep=6, random_pick_num=100)
 print(best_point, best_uct)
 b = time.time()
 print(b - a)
