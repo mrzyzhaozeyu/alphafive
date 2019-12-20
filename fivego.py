@@ -106,8 +106,8 @@ class Tree:
     并对选定的节点进行统计采样
     """
 
-    def __init__(self, initial_board, firstplayer=playerA, continus_number=3):
-        self.firstplayer = firstplayer
+    def __init__(self, initial_board, robotplayer=playerA, continus_number=3):
+        self.firstplayer = robotplayer
         self.board = initial_board
         self.continus_number = continus_number
         self.unvisited_board = {}
@@ -159,14 +159,14 @@ class Tree:
             curr_data = self.tree_recode
             for i in key_list[:-1]:
                 if curr_data.__contains__(i):
-                    curr_data[i]['count'] += 1  # 反向传播记录
+                    curr_data[i]['count'] += 1  # 反向传播记录总数
                     curr_data = curr_data[i]
                     # curr_data['count'] += 1
                 else:
-                    curr_data[i] = {'count': 1, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'unvisited'}
+                    curr_data[i] = {'count': 1, 'playerA': 0, 'playerB': 0, 'UCT_A': 0, 'UCT_B': 0, 'state': 'unvisited'}
                     curr_data = curr_data[i]
 
-            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'unvisited'}
+            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT_A': 0, 'UCT_B': 0, 'state': 'unvisited'}
 
         if v == 'playerA':
 
@@ -179,10 +179,10 @@ class Tree:
                     curr_data = curr_data[i]
 
                 else:
-                    curr_data[i] = {'count': 1, 'playerA': 1, 'playerB': 0, 'UCT': 0, 'state': 'unvisited'}
+                    curr_data[i] = {'count': 1, 'playerA': 1, 'playerB': 0, 'UCT_A': 0, 'UCT_B': 0,'state': 'unvisited'}
                     curr_data = curr_data[i]
 
-            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'playerA'}
+            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT_A': 0, 'UCT_B': 0,'state': 'playerA'}
 
         if v == 'playerB':
 
@@ -195,22 +195,10 @@ class Tree:
                     curr_data = curr_data[i]
 
                 else:
-                    curr_data[i] = {'count': 1, 'playerA': 0, 'playerB': 1, 'UCT': 0, 'state': 'unvisited'}
+                    curr_data[i] = {'count': 1, 'playerA': 0, 'playerB': 1, 'UCT_A': 0, 'UCT_B': 0, 'state': 'unvisited'}
                     curr_data = curr_data[i]
 
-            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT': 0, 'state': 'playerB'}
-
-        # key_list = k
-        # curr_data = self.tree_recode
-        # for i in key_list[:-1]:
-        #     if curr_data.__contains__(i):
-        #         curr_data = curr_data[i]
-        #
-        #     else:
-        #         curr_data[i] = {}
-        #         curr_data = curr_data[i]
-        #
-        # curr_data[key_list[-1]] = v
+            curr_data[key_list[-1]] = {'count': 0, 'playerA': 0, 'playerB': 0, 'UCT_A': 0, 'UCT_B': 0, 'state': 'playerB'}
 
     def read_result_from_tree(self, path):
         """
@@ -221,6 +209,7 @@ class Tree:
         order = "self.tree_recode"
         for point in path:
             order += "[{}]".format(point)
+        print(order)
         result = eval(order)
         return result
 
@@ -244,7 +233,6 @@ class Tree:
         """
         max_path = []
         while True:
-
             max_point, next_tree = self.find_layer_max_uct(tree, player)
             player = -player
             tree = next_tree
@@ -256,42 +244,47 @@ class Tree:
 
     def find_layer_max_uct(self, tree, player):
         """
-        搜索每一层的最大UCT
+        搜索每一层的最大UCT和最小UCT，交替player
+        :param tree:
+        :param player:
+        :return:
         """
         max_uct_poin = None
         max_uct = None
         if player == 1:
             for k in tree:
                 if isinstance(tree[k], dict):
-                    if tree[k].__contains__('UCT'):
-                        if max_uct_poin is None or max_uct is None:
-                            max_uct_poin = k
-                            max_uct = tree[k]['UCT']
-                        elif tree[k]['UCT'] > max_uct:
-                            max_uct = tree[k]['UCT']
-                            max_uct_poin = k
-            if max_uct_poin is None or max_uct == 0:  # 最后的叶子节点UCT都为0 从上一级开始expand
-                nest_tree = None
+                    if tree[k].__contains__('UCT_A'):
+                        if tree[k]['state'] == 'unvisited':
+                            if max_uct_poin is None or max_uct is None:
+                                max_uct_poin = k
+                                max_uct = tree[k]['UCT_A']
+                            elif tree[k]['UCT_A'] > max_uct:
+                                max_uct = tree[k]['UCT_A']
+                                max_uct_poin = k
+            if max_uct_poin is None:  # 最后的叶子节点UCT都为0 从上一级开始expand
+                next_tree = None
                 max_uct_poin = None
             else:
-                nest_tree = tree[max_uct_poin]
+                next_tree = tree[max_uct_poin]
         elif player == -1:
             for k in tree:
                 if isinstance(tree[k], dict):
-                    if tree[k].__contains__('UCT'):
-                        if max_uct_poin is None or max_uct is None:
-                            max_uct_poin = k
-                            max_uct = 1 - tree[k]['UCT']
-                        elif 1 - tree[k]['UCT'] > max_uct:
-                            max_uct = 1 - tree[k]['UCT']
-                            max_uct_poin = k
+                    if tree[k].__contains__('UCT_B'):
+                        if tree[k]['state'] == 'unvisited':
+                            if max_uct_poin is None or max_uct is None:
+                                max_uct_poin = k
+                                max_uct = tree[k]['UCT_B']
+                            elif tree[k]['UCT_B'] > max_uct:
+                                max_uct = tree[k]['UCT_B']
+                                max_uct_poin = k
             if max_uct_poin is None:  # 最后的叶子节点UCT都为0 从上一级开始expand
-                nest_tree = None
+                next_tree = None
                 max_uct_poin = None
             else:
-                nest_tree = tree[max_uct_poin]
+                next_tree = tree[max_uct_poin]
 
-        return max_uct_poin, nest_tree
+        return max_uct_poin, next_tree
 
     def fully_expanded(self, para):
         """
@@ -301,11 +294,15 @@ class Tree:
         visited_playerA_path = []
         visited_playerB_path = []
         next_player = -para['firstplayer']  # root后下一手棋手
-        # board = copy.deepcopy(self.initial_board)  # 拷贝初始棋盘
         board = copy.deepcopy(para['board'])
         board.add_stone(para['point'][0], para['point'][1], para['firstplayer'])  # root点落子
-        availabel_points_list = board.available_points_list  # 可落子的点
-        # path_list = list(itertools.permutations(availabel_points_list, para['deep']))  # 得到深度为deep 这行太占内存了
+        # availabel_points_list = board.available_points_list  # 可落子的点
+        availabel_points_list = self.strategy(board)
+        print(availabel_points_list)
+        print(len(availabel_points_list))
+        if len(availabel_points_list) < para['deep']:
+            para['deep'] = len(availabel_points_list)
+
         # 产生随机的拓展path
         path_list = []
         while len(path_list) < para['random_pick_num']:
@@ -331,8 +328,6 @@ class Tree:
                 visited_playerB_path.append(end_board.move_recode)  # 记录那些已经到头的搜索路径playerB 获胜
 
         winner_recode = Counter(winner_count_list)  # 统计遍历结果得到胜率
-        # UCT = (winner_recode[self.firstplayer] / (len(winner_count_list))) + (
-        #             sqrt(2) * sqrt(log(para['sum_root_path']) / len(winner_count_list)))  # 计算胜率 Q/All path
 
         return {'point': para['point'],  # 起始扩展点
                 # 'UCT': UCT,  # 被扩展点的UCT
@@ -359,21 +354,18 @@ class Tree:
         uct = (winner / (count + 1)) + sqrt(c * log(root_count) / (count + 1))
         return uct
 
-    def updata_UCT(self, tree, root_count, player, c):
+    def updata_UCT(self, tree, root_count, c):
         for k in tree:
             if isinstance(tree[k], dict):
-                tree[k]['UCT'] = self.UCT(tree[k][player], tree[k]['count'], root_count, c)
-                self.updata_UCT(tree[k], tree[k]['count'], player, c)
+                tree[k]['UCT_A'] = self.UCT(tree[k]['playerA'], tree[k]['count'], root_count, c)
+                tree[k]['UCT_B'] = self.UCT(tree[k]['playerB'], tree[k]['count'], root_count, c)
+                self.updata_UCT(tree[k], tree[k]['count'], c)
 
     def traverse(self, board, deep, random_pick_num=100):
         """
         蒙特卡洛树中找到best_uct节点
         """
-        # deep = 3  # 指定搜索深度
-        # best_point = None
-        # best_uct = None
-        poll = mp.Pool(processes=8)  # 并行运算
-        # root_width = len(self.initial_board.available_points_list)
+        poll = mp.Pool(processes=self.multiprocessing_num)  # 并行运算
         root_width = len(board.available_points_list)
         fully_expanded_para_list = []
 
@@ -394,68 +386,87 @@ class Tree:
         recode_collection = poll.map(self.fully_expanded, fully_expanded_para_list)
         #  求best uct和best point
         for recode in recode_collection:
-            # if best_point == None or best_uct == None:
-            #     best_point = recode['point']
-            #     best_uct = recode['UCT']
-            #
-            # elif recode['UCT'] > best_uct:
-            #     best_uct = recode['UCT']
-            #     best_point = recode['point']
-
-            # self.unvisited_board[recode['point']] = recode['unvisited_board']
-            # self.visited_board[recode['point']] = recode['visited_board']
-            # self.UCT_recode[recode['point']] = recode['UCT']
             self.backpropagation(recode['unvisited_path'],
                                  recode['visited_playerA_path'],
                                  recode['visited_playerB_path'])
 
-        # return best_point, best_uct
-
-    def generate_initial_board(self, pre_path, board, player):
-        # TODO 生成某条准备探索的初始化棋盘，预先的path已经生成
+    def generate_initial_board(self, pre_path, board, player=playerA):
+        """
+        生成某条准备探索的初始化棋盘，预先的path已经生成
+        :param pre_path:
+        :param board:
+        :param player: 初始化开始的棋手默认是PlayerA=1
+        :return:
+        """
         for point in pre_path:
-            # print(board.board)
-            # print(board.move_recode)
-            board.add_stone(point[0], point[1], player)
+            try:
+                board.add_stone(point[0], point[1], player)
+            except:
+                pass
+            player = -player
         return board
 
-    def monte_carlo_tree_search(self, deep, random_pick_num):
+    def strategy(self, board):
+        last_stone = board.move_recode[-1]
+        select_points = []
+        x_list = []
+        y_list = []
+        for point in board.move_recode:
+            x_list.append(point[0])
+            y_list.append(point[1])
+        x_centre = int(np.mean(x_list))
+        y_centre = int(np.mean(y_list))
+        for x in range(x_centre-2, x_centre+2):
+            for y in range(y_centre-2, y_centre+2):
+                if x>=0 and x<board.board_size and y>=0 and y<board.board_size:
+                    if (x, y) in board.available_points_list:
+                        select_points.append((x, y))
+        # if len(select_points) < 10:
+        for x in range(last_stone[0] - 2, last_stone[0] + 2):
+            for y in range(last_stone[1] - 2, last_stone[1] + 2):
+                if x >= 0 and x < board.board_size and y >= 0 and y < board.board_size:
+                    if (x, y) in board.available_points_list and (x, y) not in select_points:
+                        select_points.append((x, y))
+
+        return select_points
+
+    def monte_carlo_tree_search(self, deep, random_pick_num, multiprocessing_num, robot_player_order='playerB'):
+        """
+        main function
+        :param deep:
+        :param random_pick_num:
+        :param multiprocessing_num:
+        :param robot_player_order: 默认机器后下，如果机器先下，应该是playerB
+        :return:
+        """
+        try:
+            self.read_tree()
+        except:
+            pass
         start_time = time.time()
-        # board = copy.deepcopy(self.initial_board)
-        # while time.time() - start_time < 50:
-        pre_path = []
-        while time.time() - start_time < 120:
-            # best_point, best_uct = self.traverse(deep=deep,
-            #                                      random_pick_num=random_pick_num,
-            #                                      board=self.initial_board)  # 第一手棋手开始搜索
+        self.multiprocessing_num = multiprocessing_num
+        pre_path = self.board.move_recode
+        print('pre_path:', pre_path)
+        while time.time() - start_time < 180:
+            next_board = self.generate_initial_board(pre_path, copy.deepcopy(self.board))
             self.traverse(deep=deep,
                           random_pick_num=random_pick_num,
                           board=self.generate_initial_board(pre_path, copy.deepcopy(self.board),
-                                                            player=playerB))  # 从一个选定的叶子开始扩展并更新tree 此处的棋盘board要深度拷贝不要污染初始化棋盘
-            self.updata_UCT(self.tree_recode, 1, player='playerA', c=2.0)  # 更新UCT
+                                                            player=playerA))  # 从一个选定的叶子开始扩展并更新tree 此处的棋盘board要深度拷贝不要污染初始化棋盘
+            self.updata_UCT(self.tree_recode, 1, c=1.75)  # 更新UCT
+            # self.read_result_from_tree(pre_path)
             self.max_path = self.find_max_UCT_path(self.tree_recode, playerB)  # 贪心算法找到UCT最大路径
-            print(self.max_path)
-            pre_path = self.max_path[len(self.board.move_recode):]
-
-        # board = random.choice(self.unvisited_board[best_point])  # 选出一个没有完成的board来计算
+            # print(self.tree_recode)
+            # self.max_path = self.find_max_UCT_path(self.read_result_from_tree(pre_path), playerB)  # 贪心算法找到UCT最大路径, 更新最佳路径
+            print('-------self.max_path--------:', self.max_path)
+            pre_path = self.max_path
+            # pre_path = self.max_path[len(self.board.move_recode):]
+        self.save_tree()
 
         return self.max_path[len(self.board.move_recode)]
 
 
-# %%
-import time
 
-board = Board(8)
-board.add_stone(5, 4, playerA)
-tree = Tree(board, firstplayer=playerB, continus_number=5)
-a = time.time()
-best_point = tree.monte_carlo_tree_search(deep=9, random_pick_num=1000)
-print(best_point)
-b = time.time()
-print(b - a)
-
-
-# chess_board = ChessBoard()
 
 
 # %%
@@ -536,8 +547,8 @@ class ChessBoard():
         # print(self.last_stone)
         time.sleep(5)
         # print(self.last_stone)
-        tree = Tree(board, firstplayer=playerB, continus_number=5)
-        best_point = tree.monte_carlo_tree_search(deep=10, random_pick_num=5000)
+        tree = Tree(board, robotplayer=playerB, continus_number=5)
+        best_point = tree.monte_carlo_tree_search(deep=10, random_pick_num=3000, multiprocessing_num=3)
         x = best_point[0]
         y = best_point[1]
 
@@ -581,85 +592,57 @@ class ChessBoard():
         for i in range(self.size):
             for j in range(self.size):
                 if self.Matrix[i][j] == player:
-                    if i + 4 < self.size and self.Matrix[i + 1][j] == player and self.Matrix[i + 2][j] == player and self.Matrix[i + 3][j] == player and self.Matrix[i + 4][j] == player:  # horizontal
-                        flag = True
-                        self.is_start=False
-                    if j + 4 < self.size and self.Matrix[i][j + 1] == player and self.Matrix[i][j + 2] == player and self.Matrix[i][j + 3] == player and self.Matrix[i][j + 4] == player:  # vertical
+                    if i + 4 < self.size and self.Matrix[i + 1][j] == player and self.Matrix[i + 2][j] == player and \
+                            self.Matrix[i + 3][j] == player and self.Matrix[i + 4][j] == player:  # horizontal
                         flag = True
                         self.is_start = False
-                    if i + 4 < self.size and j + 4 < self.size and self.Matrix[i + 1][j + 1] == player and self.Matrix[i + 2][j + 2] == player and self.Matrix[i + 3][j + 3] == player and self.Matrix[i + 4][j + 4] == player:  # diagonal
+                    if j + 4 < self.size and self.Matrix[i][j + 1] == player and self.Matrix[i][j + 2] == player and \
+                            self.Matrix[i][j + 3] == player and self.Matrix[i][j + 4] == player:  # vertical
                         flag = True
                         self.is_start = False
-                    if i - 4 > 0 and j + 4 < self.size and self.Matrix[i - 1][j + 1] == player and self.Matrix[i - 2][j + 2] == player and self.Matrix[i - 3][j + 3] == player and self.Matrix[i - 4][j + 4] == player:  # anti-diagonal
+                    if i + 4 < self.size and j + 4 < self.size and self.Matrix[i + 1][j + 1] == player and \
+                            self.Matrix[i + 2][j + 2] == player and self.Matrix[i + 3][j + 3] == player and \
+                            self.Matrix[i + 4][j + 4] == player:  # diagonal
+                        flag = True
+                        self.is_start = False
+                    if i - 4 > 0 and j + 4 < self.size and self.Matrix[i - 1][j + 1] == player and self.Matrix[i - 2][
+                        j + 2] == player and self.Matrix[i - 3][j + 3] == player and self.Matrix[i - 4][
+                        j + 4] == player:  # anti-diagonal
                         flag = True
                         self.is_start = False
         return flag
 
 
 # %%
-tree_recode = tree.tree_recode
+if __name__ == "__main__":
+    # board = Board(8)
+    # # board.add_stone(5, 4, playerA)
+    # # board.add_stone(5, 5, playerB)
+    # # board.add_stone(6, 5, playerA)
+    # # board.add_stone(6, 6, playerB)
+    # # board.add_stone(4, 3, playerA)
+    # # board.add_stone(7, 6, playerB)
+    # # board.add_stone(5, 4, playerA)
+    # # board.add_stone(5, 5, playerB)
+    # # board.add_stone(5, 4, playerA)
+    # # board.add_stone(5, 5, playerB)
+    #
+    # board.add_stone(3, 3, playerA)
+    # board.add_stone(2, 2, playerB)
+    # board.add_stone(3, 2, playerA)
+    # board.add_stone(3, 1, playerB)
+    # board.add_stone(2, 3, playerA)
+    # board.add_stone(0, 4, playerB)
+    # board.add_stone(4, 3, playerA)
+    # tree = Tree(board, robotplayer=playerB, continus_number=5)
+    # a = time.time()
+    # best_point = tree.monte_carlo_tree_search(deep=10, random_pick_num=10000, multiprocessing_num=3)
+    # print(best_point)
+    # print(tree.board.board)
+    # # print(tree.tree_recode)
+    # # best_point = tree.monte_carlo_tree_search(deep=12, random_pick_num=5000, multiprocessing_num=3)
+    # # print(best_point)
+    # b = time.time()
+    # print(b - a)
 
-
-def UCT(winner, count, root_count, c):
-    uct = (winner / (count + 1)) + sqrt(c * log(root_count) / (count + 1))
-    return uct
-
-
-def updata_UCT(tree, root_count, player, c):
-    for k in tree:
-        if isinstance(tree[k], dict):
-            tree[k]['UCT'] = UCT(tree[k][player], tree[k]['count'], root_count, c)
-            updata_UCT(tree[k], tree[k]['count'], player, c)
-
-
-updata_UCT(tree_recode, 1, player='playerA', c=2)
-
-
-# %%
-# trees = {'a': {'UCT': 3, 'b': {'UCT': 8}}}
-
-def find_max_UCT_path(tree):
-    """
-    搜索每个deep最大的UCT节点，返回下一步要expand的节点
-    """
-    max_path = []
-
-    while True:
-
-        max_point, next_tree = find_layer_max_uct(tree)
-        tree = next_tree
-        if max_point is None:
-            break
-        else:
-            max_path.append(max_point)
-    return max_path
-
-
-def find_layer_max_uct(tree):
-    max_uct_poin = None
-    max_uct = None
-    for k in tree:
-        if isinstance(tree[k], dict):
-            if tree[k].__contains__('UCT'):
-                if max_uct_poin is None or max_uct is None:
-                    max_uct_poin = k
-                    max_uct = tree[k]['UCT']
-                elif tree[k]['UCT'] > max_uct:
-                    max_uct = tree[k]['UCT']
-                    max_uct_poin = k
-    if max_uct_poin is None:
-        nest_tree = None
-    else:
-        nest_tree = tree[max_uct_poin]
-
-    return max_uct_poin, nest_tree
-
-
-max_path = find_max_UCT_path(tree.tree_recode)
-
-# %%
-# while True:
-ChessBoard()
-#     chess_board.last_stone
-# chess_board.board
-# chess_board.update_by_pc()
+    ChessBoard()
