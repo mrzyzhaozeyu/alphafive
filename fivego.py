@@ -375,13 +375,14 @@ class Tree:
             sum_root_path *= root_width - i
 
         # 构建多线程的传输参数
-        for point in board.available_points_list:
+        available_points_list = self.strategy(board)
+        for point in available_points_list:
             fully_expanded_para_list.append({'point': point,  # 开始搜索的root的第一手点位
                                              'sum_root_path': sum_root_path,  # root在深度为deep下的所有搜索路径
                                              'deep': deep,  # 搜索深度
                                              'firstplayer': self.firstplayer,
                                              'random_pick_num': random_pick_num,
-                                             'board': board})  # 传入初始化的棋盘
+                                             'board': copy.deepcopy(board)})  # 传入初始化的棋盘
 
         recode_collection = poll.map(self.fully_expanded, fully_expanded_para_list)
         #  求best uct和best point
@@ -439,10 +440,10 @@ class Tree:
         :param robot_player_order: 默认机器后下，如果机器先下，应该是playerB
         :return:
         """
-        try:
-            self.read_tree()
-        except:
-            pass
+        # try:
+        #     self.read_tree()
+        # except:
+        #     pass
         start_time = time.time()
         self.multiprocessing_num = multiprocessing_num
         pre_path = self.board.move_recode
@@ -461,7 +462,7 @@ class Tree:
             print('-------self.max_path--------:', self.max_path)
             pre_path = self.max_path
             # pre_path = self.max_path[len(self.board.move_recode):]
-        self.save_tree()
+        # self.save_tree()
 
         return self.max_path[len(self.board.move_recode)]
 
@@ -548,7 +549,7 @@ class ChessBoard():
         time.sleep(5)
         # print(self.last_stone)
         tree = Tree(board, robotplayer=playerB, continus_number=5)
-        best_point = tree.monte_carlo_tree_search(deep=10, random_pick_num=3000, multiprocessing_num=3)
+        best_point = tree.monte_carlo_tree_search(deep=10, random_pick_num=4000, multiprocessing_num=3)
         x = best_point[0]
         y = best_point[1]
 
