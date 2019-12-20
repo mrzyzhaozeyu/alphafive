@@ -417,14 +417,14 @@ class Tree:
             y_list.append(point[1])
         x_centre = int(np.mean(x_list))
         y_centre = int(np.mean(y_list))
-        for x in range(x_centre-2, x_centre+2):
-            for y in range(y_centre-2, y_centre+2):
+        for x in range(x_centre-2, x_centre+3):
+            for y in range(y_centre-2, y_centre+3):
                 if x>=0 and x<board.board_size and y>=0 and y<board.board_size:
                     if (x, y) in board.available_points_list:
                         select_points.append((x, y))
         # if len(select_points) < 10:
-        for x in range(last_stone[0] - 2, last_stone[0] + 2):
-            for y in range(last_stone[1] - 2, last_stone[1] + 2):
+        for x in range(last_stone[0] - 2, last_stone[0] + 3):
+            for y in range(last_stone[1] - 2, last_stone[1] + 3):
                 if x >= 0 and x < board.board_size and y >= 0 and y < board.board_size:
                     if (x, y) in board.available_points_list and (x, y) not in select_points:
                         select_points.append((x, y))
@@ -448,13 +448,13 @@ class Tree:
         self.multiprocessing_num = multiprocessing_num
         pre_path = self.board.move_recode
         print('pre_path:', pre_path)
-        while time.time() - start_time < 180:
+        while time.time() - start_time < 30:
             next_board = self.generate_initial_board(pre_path, copy.deepcopy(self.board))
             self.traverse(deep=deep,
                           random_pick_num=random_pick_num,
                           board=self.generate_initial_board(pre_path, copy.deepcopy(self.board),
                                                             player=playerA))  # 从一个选定的叶子开始扩展并更新tree 此处的棋盘board要深度拷贝不要污染初始化棋盘
-            self.updata_UCT(self.tree_recode, 1, c=1.75)  # 更新UCT
+            self.updata_UCT(self.tree_recode, 1, c=2)  # 更新UCT
             # self.read_result_from_tree(pre_path)
             self.max_path = self.find_max_UCT_path(self.tree_recode, playerB)  # 贪心算法找到UCT最大路径
             # print(self.tree_recode)
